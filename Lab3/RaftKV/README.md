@@ -96,7 +96,7 @@ Raft算法选出领导者意味着进入一个新的**任期（Term）**，实�
 
 一个正常的任期至少有一个领导者，任期通常分为两部分：任期开始时的选举过程和任期正常运行的部分，如下图所示：
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo20230618163632.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/1.png?raw=true)
 
 有些任期内可能没有选出领导者，如上图的Trem3，这时会立即进入下一个任期，再次尝试选出一个领导者。
 
@@ -110,11 +110,11 @@ Raft算法选出领导者意味着进入一个新的**任期（Term）**，实�
 
 Raft算法启动的第一步就是要选举出领导者。每个节点在启动时都是跟随者状态，跟随者只能被动地接收领导者或候选者的RPC请求。所以，如果领导者想要保持权威，则必须向集群中的其他节点周期性地发送心跳包，即空的AppendEntries消息。如果一个跟随者节点在选举超时时间（用变量electionTimeout表示，一般在100ms至500ms的范围内）内没有收到任何任期更大的RPC请求，则该节点认为集群中没有领导者，于是开始新的一轮选举。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo20230618191536.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/2.png?raw=true)
 
 当一个节点开始竞选时，其**选举流程**如下图所示。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo20230618191644.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/3.png?raw=true)
 
 第一步，节点转为候选者状态，其目标是获取超过半数节点的选票，让自己成为新一任期的领导者。
 
@@ -155,7 +155,7 @@ Raft算法启动的第一步就是要选举出领导者。每个节点在启动�
 
 **Raft算法通过索引和任期号唯一标识一条日志记录**。并且日志必须持久化存储，一个节点必须先将日志条目安全写到磁盘中，才能向系统中其他节点发送请求或回复请求。**如果一条日志条目被存储在超过半数的节点上，则认为该记录已提交（committed）**——这是Raft算法非常重要的特性！如果一条记录已提交，则意味着状态机可以安全地执行该记录，这条记录就不能再改变了。如下图中，第一条至第七条日志已经提交，而第八条日志尚未提交。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo20230618193920.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/4.png?raw=true)
 
 Raft算法通过AppendEntries消息来复制日志，和心跳消息共用同一个RPC，不过AppendEntries消息用来发送心跳消息时不包含日志信息。当Raft算法正常运行时，**日志复制的流程**为：
 
@@ -182,7 +182,7 @@ Raft算法维持了以下两个特性：
 
 除此之外，为了维护这两个特性，Raft算法尝试在集群中保持日志较高的一致性。Raft算法通过AppendEntries消息来检测之前的一个日志条目：每个AppendEntries消息请求包含新日志条目之前一个日志条目的索引（记为prevLogIndex）和任期（记为preLogTerm）；跟随者收到请求后，会检查自己最后一条日志的索引和任期号是否与请求消息中的prevLogIndex和preLogTerm相匹配，如果匹配则接收该记录，不匹配则拒绝。这个流程成为**一致性检查**，如下图所示：
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo20230618200305.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/5.png?raw=true)
 
 ## 领导者更替
 
@@ -192,7 +192,7 @@ Raft算法维持了以下两个特性：
 
 但与此同时，领导者也可能在完成日志复制这项工作之前又出现故障，没有复制也没有提交的日志会在一段时间内堆积起来，从而造成看起来相当混乱的情况。如下图所示，从索引为4的日志之后，系统中的日志开始变得混乱不堪：
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo20230618201741.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/6.png?raw=true)
 
 上图中，S4和S5是任期2、3、4的领导者，但不知何故，它们没有复制自己的日志记录就崩溃了，系统分区了一段时间，S1、S2、S3轮流成为任期5、6、7的领导者，但无法与S4、S5通信以执行日志清理，造成了图中的局面，导致我们看到的日志非常混乱。
 
@@ -208,7 +208,7 @@ Raft算法维持了以下两个特性：
 
 举个例子：在下图的系统中选出一个新领导者，但是此时第三台服务器不可用。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo20230618204654.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/7.png?raw=true)
 
 在第三台服务器不可用的情况下，仅看前两个节点的日志我们无法确认索引为5的日志是否达成多数派，故无法确认第5条日志是否已提交。Raft算法通过比较日志，在选举期间，选择最有可能包含所有已提交日志的节点作为领导者。所谓最有可能，就是找出日志最新并且最完整的节点来作为领导者，具体流程为：
 
@@ -231,13 +231,13 @@ Raft算法的选举限制保证选出来的领导者的日志任期最新，日�
 
 如下图所示，任期为2的领导者s1的第4条日志刚刚被复制到服务器S3，并且领导者可以看到第4条日志条目已复制到超过半数的服务器，那么该日志可以提交，并且安全地应用到状态机。现在，这条记录是安全的，下一任期的领导者必会包含此记录，因此，如果此时重新发起选举，那么服务器S4和S5都不可能从其他节点那里获得选票，因为S5的任期太旧，S4的日志太短。只有前三台中的一台可以成为新的领导者，服务器S1当然可以，服务器S2和S3也可以通过获取S4和S5的选票成为领导者。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230812153334.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/8.png?raw=true)
 
 第二种情况是，领导者试图提交之前任期的日志。
 
 如下图所示的情况，任期为2的日志条目一开始仅写在服务器S1和S2两个节点上，由于网络分区的原因，任期3的领导者S5并不知道这些记录，领导者S5创建了自己任期的三条记录后还没来得及复制就宕机了。之后任期4的领导者S1被选出，领导者S1试图与其他服务器的日志进行匹配，因此它复制了任期2的日志到S3。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230812153651.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/9.png?raw=true)
 
 虽然此时索引为3、任期为2的这条日志已经复制到多数派节点，但这条日志是不安全的，不能提交。这是因为领导者S1可能在提交后立即宕机，然后服务器S5发起选举，由于服务器S5的日志比服务器S2、S3和S4都要新且长，所以服务器S5可以从服务器S2、S3和S4处获得选票，成为任期5的领导者。一旦S5成为新的领导者，那么它将复制自己的第3条到第5条日志条目，这会覆盖服务器S2和S3上的日志，服务器S2和S3上的第3条日志条目将消失——这不符合已提交日志不能被修改的要求。
 
@@ -252,11 +252,11 @@ Raft算法的选举限制保证选出来的领导者的日志任期最新，日�
 （2）领导者必须看到超过半数的节点上还存储着至少一条自己任期内的日志。
 如下图所示，回到上一节的第二种情况，索引为3且任期为2的日志条目被复制到服务器S1，S2和S3时，虽然此时多数派已经达成，但Raft算法仍然不能提交该记录，必须等到当前任期也就是任期4的日志条目也存储在超过半数的节点上，此时第3条和第4条日志才可以被认为是已提交的。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230812155113.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/10.png?raw=true)
 
 此时服务器S5便无法赢得选举了，因为它无法从服务器S1、S2和S3处获得选票，无法获得多数派节点的选票。 结合新的选举规则和延迟提交规则，我们可以保证Raft的安全性。但实际上该问题并没有彻底解决，还有一点点瑕疵。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230812155345.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/11.png?raw=true)
 
 如上图所示，如果先按错误的情况，也就是领导者可以提交之前任期的日志，那么上述的流程如下:
 （1）服务器S1是任期2的领导者（S1的日志有个黑框）, 日志己经复制到了跟随者S2。
@@ -275,7 +275,7 @@ Raft算法的选举限制保证选出来的领导者的日志任期最新，日�
 
 上述（4）的情况是理解问题的关键。如果领导者S1只将任期为4的日志写入自己本地，然后就宕机了，那么服务器S5通过S2、S3和S4的选票选举成功成为领导者，然后将索引为2且任期为3的日志复制到所有节点，现在第2条日志是没有提交过的。此时（4）中的领导者S5已经将索引为2且任期为3的日志复制到所有节点，但它不能提交此日志条目。因为领导者S5在前任领导者S1（任期为4）选举出来后，其任期至少是5，如果选举超时或冲突，任期甚至可能是6、7、 8...我们假设S5的任期就是5。但第2条日志的任期很明显是3，因为约束领导者不能提交之前任期的日志，所以这条日志是不能提交的。只有等到新的请求进来，超过半数节点复制了任期为5的日志后，任期为3的日志才能跟着一起提交，如下图所示。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230812160401.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/12.png?raw=true)
 
 这就产生一个问题，虽然增加了延迟提交的约束系统不会重复提交了，但如果一直没有新的客户端请求进来，那么索引为2且任期为3的日志岂不是就一直不能提交？系统不就阻塞了吗？如果这里的状态机实现的是一个分布式存储系统，那么问题就很明显了。假设（4）中第2条日志里的命令是Set("k","1")，那么服务器S5当选领导者后，客户端使用Get("k")查询k的值，领导者查到该日志有记录且满足多数派，但又不能回复1给客户端，因为按照约束这条日志还未提交，线性一致性要求不能返回旧的数据，领导者迫切地需要知道这条日志到底能不能提交。
 
@@ -289,20 +289,22 @@ Raft算法的选举限制保证选出来的领导者的日志任期最新，日�
 
 领导者变更可能导致日志的不一致，之前主要展示了会影响状态机安全的情况，这里展示另外可能出现的两种情况，如下图所示。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230812161144.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/13.png?raw=true)
 
 从上图可以看出，系统中通常有两种不一致的日志：**缺失的条目**（Missing Entries）和**多出来的日志条目**（Extraneous Entries）。新的领导者必须使跟随者的日志与自己的日志保持一致，我们要清理的就是这两种日志。对于缺失的条目，Raft算法会发送AppendEntries消息来补齐；对于多出来的条目，Raft算法会想办法删除。
 
 为了清理不一致的日志，领导者会为每个跟随者保存变量nextIndex[]，用来表示要发送给该跟随者的下一个日志条目的索引。对于跟随者i来说，领导者上的nextIndex[i]的初始值为**1＋领导者最后一条日志的索引**。领导者还可以通过nextIndex[]来修复日志。如果AppendEntries消息发现日志一致性检查失败，那么领导者递减对应跟随者的nextIndex[i]值并重试。具体流程如下图所示。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230812164016.png)对于跟随者1，此时属于缺失条目，其完整流程为：
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/14.png?raw=true)
+
+对于跟随者1，此时属于缺失条目，其完整流程为：
 （1）一开始领导者根据自己的日志长度，记nextIndex[1]的值为11，带上前一个日志条目的唯一标识：索引为10且任期为6。检查发现跟随者1索引为10处没有日志，检查失败。
 
 （2）领导者递减nextIndex[1]的值，即nextIndex[1]等于10，带上前一个日志条目的唯一标识：索引为9且任期为6。跟随者1处还是没有日志，依然检查失败。
 
 （3）如此反复，直到领导者的nextIndex[1]等于5时，带上索引为4且任期为4的信息，该日志在跟随者1上匹配。接着领导者会发送日志，将跟随者1从5到10位置的日志补齐。对于跟随者2，此时属于多出来的日志，领导者同样会从nextIndex[2]为11处开始检查，一直检查到nextIndex[2]等于4时日志才匹配。值得注意的是，对于这种情况，跟随者覆盖不一致的日志时，它将删除所有后续的日志记录，Raft算法认为任何无关紧要的记录之后的记录也都是无关紧要的，如下图所示。之后再由领导者发送日志来补齐。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230812164704.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/15.png?raw=true)
 
 ## 处理旧领导者
 
@@ -365,7 +367,7 @@ Raft算法可以通过在领导者增加一个变量readIndex来优化一致性�
 
 首先我们要意识到，不能直接从旧配置切换到新配置，这可能导致出现矛盾的多数派。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230814211030.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/16.png?raw=true)
 
 如上图，系统本来以三台服务器的配置运行，此时系统管理员要添加两台服务器。如果系统管理员直接修改配置，那么集群中的节点可能无法完全在同一时间做到配置切换，这会导致服务器S1和S2形成旧集群的多数派，而同一时间服务器S3、S4和S5己经切换到新配置，这会产生两个不同的多数派。
 
@@ -373,14 +375,14 @@ Raft算法可以通过在领导者增加一个变量readIndex来优化一致性�
 
 Raft算法通过联合共识（Joint Consensus）来完成两阶段协议，即让新、旧两种配置都获得多数派选票。如下图所示，在**第一阶段**，领导者收到$C_{new}$的配置变更请求后，先写入一条$C_{old＋new}$的日志，配置变更立即生效。然后领导者将日志通过AppendEntries消息复制到跟随者上，收到$C_{old+new}$日志的节点立即应用该配置作为当前节点的配置；当$C_{old+new}$日志被复制到多数派节点上时，$C_{old+new}$的日志就被领导者提交。$C_{old+new}$日志已提交保证了后续任何领导者一定保存了$C_{old+new}$日志，领导者选举过程必须获得旧配置中的多数派和新配置中的多数派同时投票。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230814211750.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/17.png?raw=true)
 
 $C_{old+new}$日志提交后，进入**第二阶段**，领导者立即写入一条$C_{new}$的日志，并将该日志通过AppendEntries消息复制到跟随者上，收到$C_{new}$日志的跟随者立即应用该配置作为当前节点的配置。$C_{new}$日志复制到多数派节点上时，$C_{new}$日志被领导者提交。在$C_{new}$日志提交以后，后续的配置就都基于$C_{new}$了。
 
 联合共识还有一个值得注意的细节，配置变更过程中，来自新旧配置的节点都有可能成为领导者，如果当前领导者不在$C_{new}$配置中，一旦$C_{new}$提交，则它必须下台（step down）。如下图所示，旧领导者不再是新配置的成员后，还有可能继续服务一小段时间，即旧领导者可能在$C_{new}$配置下继续当领导者，直到$C_{new}$的日志复制到多数派上并提交后，旧领导者就
 要下台。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230814213943.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/18.png?raw=true)
 
 如果没有额外的机制，那么配置变更可能会扰乱集群。举个例子，如果领导者创建了$C_{new}$日志条目，那么不在$C_{new}$中的跟随者将不再收到心跳，如果该服务器没有关机或杀死进程，那么该跟随者会超时并开始新的选举。此外，该跟随者并不会收到$C_{new}$日志条目，它不知道自己已经被移除，它将带有新任期号的RequestVote消息发送给新集群中的领导者（旧领导者知道新领导者的地址），这导致当前领导者转为跟随者状态，虽然旧领导者因为日志不完整无法选举成功，但也会影响新的领导者重新选举。这个过程可能一直重复，导致系统可用性变差，如果同时移除多个节点，那么情况可能会更糟糕。
 
@@ -388,7 +390,7 @@ $C_{old+new}$日志提交后，进入**第二阶段**，领导者立即写入一
 
 但只根据日志来判断并不能彻底解决该问题，如果领导者还没有把$C_{new}$复制到多数派节点，那么此时新集群的跟随者S2和S3依旧会同意旧集群的节点S1发起的Pre-Vote请求，S2将继续发起选举，干扰真正的领导者S4，使其转变为跟随者，影响集群正常工作，如下图所示。
 
-![](https://yeyu-1313730906.cos.ap-guangzhou.myqcloud.com/PicGo/20230814232455.png)
+![](https://github.com/yeyuhl/CloudComputingLabs/blob/master/Lab3/RaftKV/images/19.png?raw=true)
 
 因此我们要增强Pre-Vote请求的判断条件，我们需要通过心跳来确定是否存在一个有效的领导者，在Raft算法中，如果一个领导者能够保持和其跟随者的心跳，则被认为是活跃的领导者，我们的系统不应该扰乱一个活跃的领导者。因此，如果一个服务器在选举超时时间内收到领导者的心跳，那么它将不会同意Pre-Vote请求，它可以不回复Pre-Vote请求或者直接回复拒绝。虽然这会导致每个服务器在开始选举之前，至少要多等待一个选举超时时间，但这有助于避免来自旧集群的服务器的干扰。
 
