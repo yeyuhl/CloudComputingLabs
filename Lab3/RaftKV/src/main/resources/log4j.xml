@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" debug="false">
+    <!-- %d表示日期时间，%t表示线程名，%5p表示日志级别，%c表示类名%M表示方法名%L表示行号，%m表示输出的日志消息，%n是换行符 -->
+    <!-- 把日志输出到控制台 -->
+    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %t %5p [%c:%M:%L] - %m%n"/>
+        </layout>
+    </appender>
+
+    <!-- 设置日志输出级别，INFO及以上级别的所有日志信息将写入到控制台 -->
+    <root>
+        <level value="INFO"/>
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</log4j:configuration>
